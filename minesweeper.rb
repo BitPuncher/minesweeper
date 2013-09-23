@@ -42,18 +42,18 @@ class Minesweeper
       @mines = size == 9 ? 10 : 40
     end
 
-    def find_tile_neighbors(tile)
+    def find_tile_neighbors(position)
       tile_neighbors = []
 
       neighbor_locations = [[-1, -1], [-1, 0], [-1, 1],
                             [0, -1],           [0, 1],
                             [1, -1], [1, 0], [1, 1]]
       neighbor_locations.each do |location|
-        d_row = tile.position[0] + location[0]
-        d_column = tile.position[1] + location[1]
+        d_row = position[0] + location[0]
+        d_column = position[1] + location[1]
 
         if is_on_board?([d_row, d_column])
-          tile_neighbors << @board[d_row][d_column]
+          tile_neighbors << @tiles[d_row][d_column]
         end
       end
 
@@ -74,20 +74,23 @@ class Minesweeper
       tile.calculate_value
 
       if tile.value == 0
-        tile.find_neighbors.each do |neighbor_tile|
-          explore(neighbor_tile) unless neighbor_tile.value
+        find_tile_neighbors(position).each do |neighbor_tile|
+          explore(neighbor_tile.position) unless neighbor_tile.value
         end
       end
     end
 
     def generate_mines(ignore_position)
+      ignore_positions = [ignore_position]
+      ignore_positions += find_tile_neighbors(ignore_position).map { |tile| tile.position }
+
       mines_placed = 0
 
       while true
         @tiles.each do |row|
           row.each do |tile|
             return if mines_placed == @mines
-            next if tile.is_mine || tile.position == ignore_position
+            next if tile.is_mine || ignore_positions.include?(tile.position)
             if rand(100) < 13
               tile.is_mine = true
               mines_placed += 1
@@ -126,17 +129,12 @@ class Minesweeper
       @position = position
     end
 
-    def find_neighbors
-      @board.find_tile_neighbors(self)
-    end
-
     def change_mine_state
       @is_mine = !@is_mine
     end
 
     def calculate_value
-      neighbors = find_neighbors
-      @value = neighbors.count { |tile| tile.is_mine }
+      @value = @board.find_tile_neighbors(@position).count { |tile| tile.is_mine }
     end
 
     def to_s
