@@ -8,7 +8,7 @@ class Minesweeper
   def run
     first_move = true
     while true
-      @board.display
+      puts @board
 
       print "Would you like to flag or explore a tile? [F, E] "
       flagging = gets.chomp.upcase == "F"
@@ -16,14 +16,14 @@ class Minesweeper
       location_input = gets.chomp
 
       location = location_input.split(",").map { |coordinate| coordinate.strip.to_i }
-      tile = @board[location[0] - 1, location[1] - 1]
+      tile_position = [location[0] - 1, location[1] - 1]
 
       if first_move
-        @board.generate_mines(tile)
+        @board.generate_mines(tile_position)
         first_move = false
       end
 
-      flagging ? @board.flag(tile) : @board.explore(tile)
+      flagging ? @board.flag(tile_position) : @board.explore(tile_position)
     end
   end
 
@@ -65,11 +65,12 @@ class Minesweeper
       valid_range.include?(position[0]) && valid_range.include?(position[1])
     end
 
-    def flag(tile)
-      tile.flagged = true
+    def flag(position)
+      @tiles[position[0]][position[1]].flagged = true
     end
 
-    def explore(tile)
+    def explore(position)
+      tile = @tiles[position[0]][position[1]]
       tile.calculate_value
 
       if tile.value == 0
@@ -79,33 +80,38 @@ class Minesweeper
       end
     end
 
-    def generate_mines(ignore_tile)
+    def generate_mines(ignore_position)
       mines_placed = 0
 
       while true
         @tiles.each do |row|
           row.each do |tile|
             return if mines_placed == @mines
-            next if tile.is_mine || tile.position == ignore_tile.position
+            next if tile.is_mine || tile.position == ignore_position
             if rand(100) < 13
               tile.is_mine = true
-              mines_places += 1
+              mines_placed += 1
+            end
           end
         end
       end
     end
 
-    def inspect
+    def to_s
+      result = ""
       column_axis = "  "
       @size.times do |row_number|
         column_axis << "#{row_number + 1} "
       end
-      puts column_axis
+      result << column_axis + "\n"
+
       @tiles.each_with_index do |row, index|
         row_string = "#{index + 1} "
         @tiles[index].each { |tile| row_string << "#{tile.inspect} " }
-        puts row_string
+        result << row_string + "\n"
       end
+
+      result
     end
   end
 
@@ -133,8 +139,8 @@ class Minesweeper
       @value = neighbors.count { |tile| tile.is_mine }
     end
 
-    def inspect
-      return "M" if @is_mine
+    def to_s
+      # return "M" if @is_mine
       return "F" if @flagged
       case @value
       when nil then "*"
@@ -148,3 +154,4 @@ end
 print "What size board would you like? [9. 16] "
 size = gets.chomp.to_i
 m = Minesweeper.new(size)
+m.run
