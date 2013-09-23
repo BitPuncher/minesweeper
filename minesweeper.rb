@@ -66,11 +66,17 @@ class Minesweeper
     end
 
     def flag(position)
-      @tiles[position[0]][position[1]].flagged = true
+      @tiles[position[0]][position[1]].change_flag
     end
 
     def explore(position)
       tile = @tiles[position[0]][position[1]]
+
+      if tile.flagged
+        puts "Tile is flagged, unflag to explore!"
+        return
+      end
+
       tile.calculate_value
 
       if tile.value == 0
@@ -129,8 +135,8 @@ class Minesweeper
       @position = position
     end
 
-    def change_mine_state
-      @is_mine = !@is_mine
+    def change_flag
+      @flagged = !@flagged
     end
 
     def calculate_value
