@@ -7,7 +7,8 @@ class Minesweeper
 
   def run
     first_move = true
-    while true
+    game_over = false
+    until game_over
       puts @board
 
       print "Would you like to flag or explore a tile? [F, E] "
@@ -23,7 +24,21 @@ class Minesweeper
         first_move = false
       end
 
-      flagging ? @board.flag(tile_position) : @board.explore(tile_position)
+      if flagging
+        @board.flag(tile_position)
+      else
+        explored_mine = @board.explore(tile_position)
+        if explored_mine
+          puts "Bomb clicked! Game over"
+          puts @board.render(true)
+          game_over = true
+        end
+      end
+
+      if @board.cleared?
+        puts "You won"
+        game_over = true
+      end
     end
   end
 
@@ -77,6 +92,8 @@ class Minesweeper
         return
       end
 
+      return true if tile.is_mine
+
       tile.calculate_value
 
       if tile.value == 0
@@ -84,6 +101,8 @@ class Minesweeper
           explore(neighbor_tile.position) unless neighbor_tile.value
         end
       end
+
+      false
     end
 
     def generate_mines(ignore_position)
@@ -106,7 +125,30 @@ class Minesweeper
       end
     end
 
-    def to_s
+    def cleared?
+      all_explored? || all_flagged?
+    end
+
+    def all_explored?
+      @tiles.each do |row|
+        row.each do |tile|
+          return false if !tile.is_mine && tile.value.nil?
+        end
+      end
+      true
+    end
+
+    def all_flagged?
+      mines_flagged = 0
+      @tiles.each do |row|
+        row.each do |tile|
+          mines_flagged += 1 if tile.is_mine && tile.flagged
+        end
+      end
+      mines_flagged == @mines
+    end
+
+    def render(show_mines = false)
       result = ""
       column_axis = "  "
       @size.times do |row_number|
@@ -116,11 +158,15 @@ class Minesweeper
 
       @tiles.each_with_index do |row, index|
         row_string = "#{index + 1} "
-        @tiles[index].each { |tile| row_string << "#{tile.inspect} " }
+        @tiles[index].each { |tile| row_string << "#{tile.render(show_mines)} " }
         result << row_string + "\n"
       end
 
       result
+    end
+
+    def to_s
+      render
     end
   end
 
@@ -143,14 +189,18 @@ class Minesweeper
       @value = @board.find_tile_neighbors(@position).count { |tile| tile.is_mine }
     end
 
-    def to_s
-      # return "M" if @is_mine
+    def render(show_mines = false)
+      return "M" if show_mines && @is_mine
       return "F" if @flagged
       case @value
       when nil then "*"
       when 0 then "_"
       else "#{value}"
       end
+    end
+
+    def to_s
+      render
     end
   end
 end
