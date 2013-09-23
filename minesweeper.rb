@@ -6,14 +6,23 @@ class Minesweeper
   end
 
   def run
+    first_move = true
     while true
       @board.display
+
       print "Would you like to flag or explore a tile? [F, E] "
       flagging = gets.chomp.upcase == "F"
       print "Where would you like to do this? [row, column] "
       location_input = gets.chomp
+
       location = location_input.split(",").map { |coordinate| coordinate.strip.to_i }
       tile = @board[location[0] - 1, location[1] - 1]
+
+      if first_move
+        @board.generate_mines(tile)
+        first_move = false
+      end
+
       flagging ? @board.flag(tile) : @board.explore(tile)
     end
   end
@@ -30,6 +39,7 @@ class Minesweeper
           @tiles[row] << Tile.new(self, [row, column])
         end
       end
+      @mines = size == 9 ? 10 : 40
     end
 
     def find_tile_neighbors(tile)
@@ -55,6 +65,36 @@ class Minesweeper
       valid_range.include?(position[0]) && valid_range.include?(position[1])
     end
 
+    def flag(tile)
+      tile.flagged = true
+    end
+
+    def explore(tile)
+      tile.calculate_value
+
+      if tile.value == 0
+        tile.find_neighbors.each do |neighbor_tile|
+          explore(neighbor_tile) unless neighbor_tile.value
+        end
+      end
+    end
+
+    def generate_mines(ignore_tile)
+      mines_placed = 0
+
+      while true
+        @tiles.each do |row|
+          row.each do |tile|
+            return if mines_placed == @mines
+            next if tile.is_mine || tile.position == ignore_tile.position
+            if rand(100) < 13
+              tile.is_mine = true
+              mines_places += 1
+          end
+        end
+      end
+    end
+
     def inspect
       column_axis = "  "
       @size.times do |row_number|
@@ -70,10 +110,10 @@ class Minesweeper
   end
 
   class Tile
-    attr_accessor :is_bomb, :value, :flagged, :board, :position
+    attr_accessor :is_mine, :value, :flagged, :board, :position
 
     def initialize(board, position)
-      @is_bomb = false
+      @is_mine = false
       @value = nil
       @flagged = false
       @board = board
@@ -84,16 +124,17 @@ class Minesweeper
       @board.find_tile_neighbors(self)
     end
 
-    def change_bomb_state
-      @is_bomb = !@is_bomb
+    def change_mine_state
+      @is_mine = !@is_mine
     end
 
-    def set_value
+    def calculate_value
       neighbors = find_neighbors
-      @value = neighbors.count { |tile| tile.is_bomb }
+      @value = neighbors.count { |tile| tile.is_mine }
     end
 
     def inspect
+      return "M" if @is_mine
       return "F" if @flagged
       case @value
       when nil then "*"
