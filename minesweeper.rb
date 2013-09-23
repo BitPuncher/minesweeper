@@ -8,6 +8,13 @@ class Minesweeper
   def run
     while true
       @board.display
+      print "Would you like to flag or explore a tile? [F, E] "
+      flagging = gets.chomp.upcase == "F"
+      print "Where would you like to do this? [row, column] "
+      location_input = gets.chomp
+      location = location_input.split(",").map { |coordinate| coordinate.strip.to_i }
+      tile = @board[location[0] - 1, location[1] - 1]
+      flagging ? @board.flag(tile) : @board.explore(tile)
     end
   end
 
