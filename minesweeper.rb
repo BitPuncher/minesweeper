@@ -10,6 +10,7 @@ class Minesweeper
     game_over = false
     until game_over
       puts @board
+      puts "Flagged #{@board.count_is_flagged} out of #{@board.mines} mines"
 
       print "Would you like to flag or explore a tile? [F, E] "
       flagging = gets.chomp.upcase == "F"
@@ -29,7 +30,7 @@ class Minesweeper
       else
         explored_mine = @board.explore(tile_position)
         if explored_mine
-          puts "Bomb clicked! Game over"
+          puts "Mine clicked! Game over"
           puts @board.render(true)
           game_over = true
         end
@@ -43,7 +44,7 @@ class Minesweeper
   end
 
   class Board
-    attr_accessor :tiles, :size
+    attr_reader :tiles, :size, :mines
 
     def initialize(size)
       @size = size
@@ -87,8 +88,8 @@ class Minesweeper
     def explore(position)
       tile = @tiles[position[0]][position[1]]
 
-      if tile.flagged
-        puts "Tile is flagged, unflag to explore!"
+      if tile.is_flagged
+        puts "Tile is is_flagged, unflag to explore!"
         return
       end
 
@@ -106,7 +107,7 @@ class Minesweeper
     end
 
     def generate_mines(ignore_position)
-      ignore_positions = [ignore_position]
+     ignore_positions = [ignore_position]
       ignore_positions += find_tile_neighbors(ignore_position).map { |tile| tile.position }
 
       mines_placed = 0
@@ -117,7 +118,7 @@ class Minesweeper
             return if mines_placed == @mines
             next if tile.is_mine || ignore_positions.include?(tile.position)
             if rand(100) < 13
-              tile.is_mine = true
+              tile.set_mine
               mines_placed += 1
             end
           end
@@ -126,7 +127,7 @@ class Minesweeper
     end
 
     def cleared?
-      all_explored? || all_flagged?
+      all_explored? || count_is_flagged == @mines
     end
 
     def all_explored?
@@ -138,27 +139,27 @@ class Minesweeper
       true
     end
 
-    def all_flagged?
-      mines_flagged = 0
+    def count_is_flagged
+      mines_is_flagged = 0
       @tiles.each do |row|
         row.each do |tile|
-          mines_flagged += 1 if tile.is_mine && tile.flagged
+          mines_is_flagged += 1 if tile.is_mine && tile.is_flagged
         end
       end
-      mines_flagged == @mines
+      mines_is_flagged
     end
 
     def render(show_mines = false)
       result = ""
       column_axis = "  "
       @size.times do |row_number|
-        column_axis << "#{row_number + 1} "
+        column_axis << "#{row_number + 1} ".rjust(3)
       end
       result << column_axis + "\n"
 
       @tiles.each_with_index do |row, index|
-        row_string = "#{index + 1} "
-        @tiles[index].each { |tile| row_string << "#{tile.render(show_mines)} " }
+        row_string = "#{index + 1} ".rjust(3)
+        @tiles[index].each { |tile| row_string << "#{tile.render(show_mines)}  " }
         result << row_string + "\n"
       end
 
@@ -171,18 +172,23 @@ class Minesweeper
   end
 
   class Tile
-    attr_accessor :is_mine, :value, :flagged, :board, :position
+    attr_reader :board, :position, :value, :is_mine
+    attr_accessor :is_flagged
 
     def initialize(board, position)
       @is_mine = false
       @value = nil
-      @flagged = false
+      @is_flagged = false
       @board = board
       @position = position
     end
 
+    def set_mine
+      @is_mine = true
+    end
+
     def change_flag
-      @flagged = !@flagged
+      @is_flagged = !@is_flagged
     end
 
     def calculate_value
@@ -191,7 +197,7 @@ class Minesweeper
 
     def render(show_mines = false)
       return "M" if show_mines && @is_mine
-      return "F" if @flagged
+      return "F" if @is_flagged
       case @value
       when nil then "*"
       when 0 then "_"
