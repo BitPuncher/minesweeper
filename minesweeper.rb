@@ -1,21 +1,28 @@
 class Minesweeper
-  attr_accessor :board
+  attr_accessor :board, :size
 
+  def initialize(size)
+    @board = Board.new(size)
+  end
+
+  def run
+    while true
+      @board.display
+    end
+  end
 
   class Board
     attr_accessor :tiles, :size
 
     def initialize(size)
-      # @tiles = Array.new(size) { Array.new(size, Tile.new) }
       @size = size
       @tiles = []
       @size.times do |row|
         @tiles[row] = []
         @size.times do |column|
-          @tiles[row][column] << Tile.new(self, row, column)
+          @tiles[row] << Tile.new(self, [row, column])
         end
       end
-
     end
 
     def find_tile_neighbors(tile)
@@ -41,6 +48,18 @@ class Minesweeper
       valid_range.include?(position[0]) && valid_range.include?(position[1])
     end
 
+    def inspect
+      column_axis = "  "
+      @size.times do |row_number|
+        column_axis << "#{row_number + 1} "
+      end
+      puts column_axis
+      @tiles.each_with_index do |row, index|
+        row_string = "#{index + 1} "
+        @tiles[index].each { |tile| row_string << "#{tile.inspect} " }
+        puts row_string
+      end
+    end
   end
 
   class Tile
@@ -48,7 +67,7 @@ class Minesweeper
 
     def initialize(board, position)
       @is_bomb = false
-      @value = 0
+      @value = nil
       @flagged = false
       @board = board
       @position = position
@@ -67,9 +86,17 @@ class Minesweeper
       @value = neighbors.count { |tile| tile.is_bomb }
     end
 
-
-
+    def inspect
+      return "F" if @flagged
+      case @value
+      when nil then "*"
+      when 0 then "_"
+      else "#{value}"
+      end
+    end
   end
-
-
 end
+
+print "What size board would you like? [9. 16] "
+size = gets.chomp.to_i
+m = Minesweeper.new(size)
