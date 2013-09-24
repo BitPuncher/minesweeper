@@ -3,32 +3,38 @@ require './board.rb'
 require 'yaml'
 
 class Minesweeper
-  INPUTS = {"S" :save_game, "F" :flag_tile, "E" :explore_tile}
+  INPUTS = {"S" => :save_game, "F" => :flag_tile, "E" => :explore_tile}
 
-  attr_accessor :board
+  attr_accessor :board, :elapsed_time
 
-  def initialize(size)
-    @board = Board.new(size = 9)
+  def initialize
+    @elapsed_time = 0
+    @board = nil
   end
 
   def run
-    # minesweeper = new_game_prompt
-    # if minesweeper
-    #   minesweeper.run
-    #   return
-    # end
-
     first_move = true
     game_over = false
-    start_time = Time.now
+
+    load_file_name = load_game_prompt
+    if load_file_name
+      minesweeper = load_game(load_file_name)
+      @board = minesweeper.board
+      @elapsed_time = minesweeper.elapsed_time
+      first_move = false
+    else
+      @board = Board.new(new_game_prompt)
+    end
+
+    @start_time = Time.now
 
     until game_over
       display_game_state
 
       input, argument = *get_input
 
-      if first_move
-        @board.generate_mines(position)
+      if first_move && input != :save_game
+        @board.generate_mines(argument)
         first_move = false
       end
 
@@ -49,7 +55,24 @@ class Minesweeper
       end
     end
 
-    puts " in #{(Time.now - start_time).to_i} seconds"
+    puts " in #{@elapsed_time + (Time.now - @start_time).to_i} seconds"
+  end
+
+  def new_game_prompt
+    print "How big of a board would you like? [9, 16] "
+    gets.strip.to_i
+  end
+
+  def load_game_prompt
+    print "Welcome to Minesweeper! Would you like to load a game? [y/n] "
+    input = gets.strip.upcase
+
+    if input == "Y"
+      print "What is the save file name? "
+      return gets.strip.downcase
+    end
+
+    nil
   end
 
   def display_game_state
@@ -75,9 +98,14 @@ class Minesweeper
   end
 
   def save_game(name)
+    @elapsed_time = Time.now - @start_time
     file = File.open("#{name}", "w")
     file.write(self.to_yaml)
     file.close
+  end
+
+  def load_game(file_name)
+    YAML::load(File.read("./#{file_name}"))
   end
 
   def flag_tile(position)
@@ -90,7 +118,4 @@ class Minesweeper
   end
 end
 
-print "What size board would you like? [9. 16] "
-size = gets.chomp.to_i
-m = Minesweeper.new(size)
-m.run
+Minesweeper.new.run
